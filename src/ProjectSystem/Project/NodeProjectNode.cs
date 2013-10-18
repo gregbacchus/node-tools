@@ -1,26 +1,39 @@
 ﻿using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 using Common;
 using Common.Ioc;
 using Microsoft.VisualStudio.Project;
 using Microsoft.VisualStudio.Shell.Interop;
 using ProjectSystem.Infrastructure;
+using ProjectSystem.Project.Automation;
 using Utilities = ProjectSystem.Infrastructure.Utilities;
 
 namespace ProjectSystem.Project
 {
+    /// <summary>
+    ///     Node.js project node.
+    /// </summary>
     public sealed class NodeProjectNode : ProjectNode
     {
         private static readonly ImageList Images;
         private static int _index;
+        private bool _disposed;
+        private ImageHandler _imageHandler;
         private IProjectLauncher _projectLauncher;
 
+        /// <summary>
+        ///     Static constructor.
+        /// </summary>
         static NodeProjectNode()
         {
-            Images = Utilities.GetImageList(typeof (NodeProjectNode).Assembly.GetManifestResourceStream("ProjectSystem.Resources.NodeProjectNode.bmp"));
+            Images = Utilities.GetImageList(GetResourceStream("ProjectSystem.Resources.NodeProjectNode.bmp"));
         }
 
+        /// <summary>
+        ///     Instance constructor.
+        /// </summary>
         public NodeProjectNode()
         {
             _index = ImageHandler.ImageList.Images.Count;
@@ -31,6 +44,22 @@ namespace ProjectSystem.Project
             }
 
             CanProjectDeleteItems = true;
+        }
+
+        /// <summary>
+        ///     Gets an ImageHandler for the project node.
+        /// </summary>
+        public override ImageHandler ImageHandler
+        {
+            get
+            {
+                if (_imageHandler == null)
+                {
+                    _imageHandler = new ImageHandler(GetResourceStream("ProjectSystem.Resources.imagelist.bmp"));
+                }
+
+                return _imageHandler;
+            }
         }
 
         public override int ImageIndex
@@ -61,6 +90,11 @@ namespace ProjectSystem.Project
 
                 return _projectLauncher;
             }
+        }
+
+        private static Stream GetResourceStream(string name)
+        {
+            return typeof (NodeProjectNode).Assembly.GetManifestResourceStream(name);
         }
 
         public override void PrepareBuild(string config, bool cleanBuild)
@@ -121,9 +155,45 @@ namespace ProjectSystem.Project
             return result;
         }
 
+        /// <summary>
+        ///     Creates a reference node.
+        /// </summary>
+        /// <returns></returns>
         protected override ReferenceContainerNode CreateReferenceContainerNode()
         {
+            // Project does not support references.
             return null;
+        }
+
+        /// <summary>
+        ///     Creates a new automation object.
+        /// </summary>
+        /// <returns>Automation object.</returns>
+        public override object GetAutomationObject()
+        {
+            return new NodeOAProject(this);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            try
+            {
+                if (_imageHandler != null)
+                {
+                    _imageHandler.Close();
+                    _imageHandler = null;
+                }
+            }
+            finally
+            {
+                base.Dispose(disposing);
+                _disposed = true;
+            }
         }
     }
 }
